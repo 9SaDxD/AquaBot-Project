@@ -568,13 +568,18 @@
         hfClient = await window.GradioClient.connect("AMORNSETS/aquabot-demo-api");
       }
 
-      // เรียกใช้งานผ่าน Endpoint มาตรฐาน /gradio_chat ที่ผูกไว้กับ Backend
-      const result = await hfClient.predict("/gradio_chat", {
+      // แก้ไข Endpoint เป็น "/chat" ตามที่ Backend เปิดไว้
+      const result = await hfClient.predict("/chat", {
         message: text,
         history: []
       });
 
-      const botReply = typeof result.data === 'string' ? result.data : result.data[0];
+      let botReply = "";
+      if (result && result.data) {
+        botReply = Array.isArray(result.data) ? result.data[0] : result.data;
+      } else {
+        botReply = "ไม่ได้รับข้อมูลตอบกลับจากระบบครับ";
+      }
 
       removeTyping();
       messages.push({ role: 'assistant', content: botReply });
