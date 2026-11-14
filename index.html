@@ -564,14 +564,12 @@
 
     try {
       if (!hfClient) {
-        // เชื่อมต่อไปยัง Space บน Hugging Face ของคุณ
         hfClient = await window.GradioClient.connect("AMORNSETS/aquabot-demo-api");
       }
 
-      // แก้ไข Endpoint เป็น "/chat" ตามที่ Backend เปิดไว้
+      // ส่งเฉพาะข้อความ (message) โดยตัด history ออกเพื่อไม่ให้ติด Error Parameter
       const result = await hfClient.predict("/chat", {
-        message: text,
-        history: []
+        message: text
       });
 
       let botReply = "";
