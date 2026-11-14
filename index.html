@@ -352,7 +352,7 @@
     <!-- NAVBAR -->
     <nav>
       <div class="nav-brand">
-        <div class="nav-logo"><img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;"></div>
+        <div class="nav-logo">🐟</div>
         <div>
           <div class="nav-title">AQUA<span>BOT</span></div>
           <div class="nav-sub">ระบบผู้ช่วยเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ</div>
@@ -362,10 +362,10 @@
 
     <!-- FISH TAGS -->
     <div class="fish-tags" style="pointer-events: none;">
-      <div class="fish-tag"><span><img src="PNG/tilapia.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลานิล</div>
-      <div class="fish-tag"><span><img src="PNG/catfish.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลาดุก</div>
-      <div class="fish-tag"><span><img src="PNG/silver-barb.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลาตะเพียน</div>
-      <div class="fish-tag"><span><img src="PNG/asian-redtail-catfish.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลากดแก้ว</div>
+      <div class="fish-tag"><span>🐟</span> ปลานิล</div>
+      <div class="fish-tag"><span>🐟</span> ปลาดุก</div>
+      <div class="fish-tag"><span>🐟</span> ปลาตะเพียน</div>
+      <div class="fish-tag"><span>🐟</span> ปลากดแก้ว</div>
     </div>
 
     <!-- MAIN CHAT CARD -->
@@ -373,7 +373,7 @@
 
       <!-- Card Header -->
       <div class="card-header">
-        <div class="mascot-wrap"><img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;"></div>
+        <div class="mascot-wrap">🐟</div>
         <div class="card-header-text">
           <h2>พี่ปลา — AquaBot</h2>
           <p>ถามเรื่องการเลี้ยงปลา วินิจฉัยโรค และการจัดการฟาร์มได้เลย!</p>
@@ -383,7 +383,7 @@
       <!-- Chat History -->
       <div class="chat-history" id="chatHistory">
         <div class="welcome-state" id="welcomeState">
-          <div class="big-emoji"><img src="PNG/mascot.png" alt="" width="70" height="70" style="vertical-align: middle;"></div>
+          <div class="big-emoji">🐟</div>
           <h3>สวัสดีครับ! ผมพี่ปลา</h3>
           <p>ผู้ช่วย AquaBot ยินดีตอบคำถามเรื่อง<br/>การเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ 4 ชนิด<br/>ลองพิมพ์คำถามหรือเลือกหัวข้อด้านล่างได้เลยครับ 🌊</p>
         </div>
@@ -468,7 +468,7 @@
 
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar ' + (role === 'user' ? 'user-av' : 'bot-av');
-    avatar.innerHTML = role === 'user' ? '👤' : '<img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;">';
+    avatar.innerHTML = role === 'user' ? '👤' : '🐟';
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble ' + role;
@@ -524,7 +524,7 @@
     row.className = 'typing-row'; row.id = 'typingRow';
 
     const av = document.createElement('div');
-    av.className = 'msg-avatar bot-av'; av.innerHTML = '<img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;">';
+    av.className = 'msg-avatar bot-av'; av.innerHTML = '🐟';
 
     const bubble = document.createElement('div');
     bubble.className = 'typing-bubble';
@@ -564,14 +564,17 @@
 
     try {
       if (!hfClient) {
+        // เชื่อมต่อไปยัง Space บน Hugging Face ของคุณ
         hfClient = await window.GradioClient.connect("AMORNSETS/aquabot-demo-api");
       }
 
+      // เรียกใช้งานผ่าน Endpoint มาตรฐาน /gradio_chat ที่ผูกไว้กับ Backend
       const result = await hfClient.predict("/gradio_chat", {
-        message: text
+        message: text,
+        history: []
       });
 
-      const botReply = result.data[0];
+      const botReply = typeof result.data === 'string' ? result.data : result.data[0];
 
       removeTyping();
       messages.push({ role: 'assistant', content: botReply });
@@ -594,7 +597,7 @@
     const h = document.getElementById('chatHistory');
     h.innerHTML = `
       <div class="welcome-state" id="welcomeState">
-        <div class="big-emoji"><img src="PNG/mascot.png" alt="" width="70" height="70" style="vertical-align: middle;"></div>
+        <div class="big-emoji">🐟</div>
         <h3>สวัสดีครับ! ผมพี่ปลา</h3>
         <p>ผู้ช่วย AquaBot ยินดีตอบคำถามเรื่อง<br/>การเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ 4 ชนิด<br/>ลองพิมพ์คำถามหรือเลือกหัวข้อด้านล่างได้เลยครับ 🌊</p>
       </div>`;
