@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AquaBot — ผู้ช่วยเลี้ยงปลา</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@500;700;800&display=swap" rel="stylesheet"/>
+  <!-- โหลด Gradio Client สำหรับเชื่อมต่อกับ Hugging Face Backend -->
+  <script type="module">
+    import { Client } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
+    window.GradioClient = Client;
+  </script>
+  <style>
+    :root {
+      --teal-dark:  #0e7490;
+      --teal:       #0891b2;
+      --teal-mid:   #06b6d4;
+      --teal-light: #cffafe;
+      --teal-pale:  #e0f7fa;
+      --blue-main:  #1d4ed8;
+      --blue-text:  #1e3a8a;
+      --sky:        #bae6fd;
+      --sky-light:  #e0f2fe;
+      --bg-page:    #eaf6fb;
+      --bg-white:   #ffffff;
+      --gold:       #f59e0b;
+      --green:      #22c55e;
+      --green-sea:  #4ade80;
+      --gray:       #64748b;
+      --gray-light: #f1f5f9;
+      --border:     #b2ebf2;
+      --shadow-sm:  0 2px 8px rgba(14,116,144,.10);
+      --shadow-md:  0 4px 20px rgba(14,116,144,.15);
+      --shadow-lg:  0 8px 40px rgba(14,116,144,.20);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg-page);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .bg-deco {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .bg-deco::before {
+      content:'';
+      position: absolute; top:-120px; right:-120px;
+      width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, #b2ebf2 0%, transparent 70%);
+      opacity: .6;
+    }
+    .bg-deco::after {
+      content:'';
+      position: absolute; bottom:-80px; left:-80px;
+      width: 340px; height: 340px; border-radius: 50%;
+      background: radial-gradient(circle, #bbdefb 0%, transparent 70%);
+      opacity: .5;
+    }
+
+    .page {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto;
+      padding: 0 16px 40px;
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    nav {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      padding: 18px 0 14px;
+      border-bottom: 2px solid var(--border);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nav-logo {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal-mid));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; box-shadow: var(--shadow-sm);
+      border: 2px solid rgba(255,255,255,.8);
+    }
+    .nav-title {
+      font-family: 'Kanit', sans-serif;
+      font-size: 1.5rem; font-weight: 800;
+      color: var(--teal-dark);
+      letter-spacing: -0.3px;
+    }
+    .nav-title span { color: var(--blue-main); }
+    .nav-sub { font-size: .75rem; color: var(--gray); margin-top: 1px; }
+
+    .fish-tags {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 12px 0 8px;
+      justify-content: center;
+    }
+    .fish-tag {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--bg-white);
+      border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: .78rem; color: var(--teal-dark);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .fish-tag span { font-size: 14px; }
+
+    .chat-card {
+      background: var(--bg-white);
+      border-radius: 24px;
+      box-shadow: var(--shadow-lg);
+      border: 1.5px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+      margin-top: 6px;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 60%, #22d3ee 100%);
+      padding: 18px 24px;
+      display: flex; align-items: center; gap: 14px;
+      position: relative; overflow: hidden;
+    }
+    .card-header::after {
+      content: '🌊';
+      position: absolute; right: 20px; bottom: -10px;
+      font-size: 60px; opacity: .15;
+    }
+    .mascot-wrap {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      border: 2px solid rgba(255,255,255,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      animation: bob 3s ease-in-out infinite;
+    }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    .card-header-text h2 {
+      font-family: 'Kanit', sans-serif;
+      color: #fff; font-size: 1.15rem; font-weight: 700;
+    }
+    .card-header-text p {
+      color: rgba(255,255,255,.8); font-size: .82rem; margin-top: 2px;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+      min-height: 420px;
+      max-height: 52vh;
+      background: var(--sky-light);
+      scroll-behavior: smooth;
+    }
+    .chat-history::-webkit-scrollbar { width: 5px; }
+    .chat-history::-webkit-scrollbar-track { background: transparent; }
+    .chat-history::-webkit-scrollbar-thumb { background: var(--teal-mid); border-radius: 10px; }
+
+    .welcome-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; flex: 1; padding: 32px 16px;
+      text-align: center; gap: 10px;
+      opacity: .75;
+    }
+    .welcome-state .big-emoji { font-size: 52px; animation: bob 3s ease-in-out infinite; }
+    .welcome-state h3 {
+      font-family: 'Kanit', sans-serif;
+      color: var(--teal-dark); font-size: 1.1rem;
+    }
+    .welcome-state p { color: var(--gray); font-size: .87rem; line-height: 1.7; }
+
+    .msg-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      animation: fadein .3s ease;
+    }
+    @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .msg-avatar.bot-av {
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal-mid));
+      border: 2px solid var(--bg-white);
+      box-shadow: var(--shadow-sm);
+    }
+    .msg-avatar.user-av {
+      background: linear-gradient(135deg, var(--blue-main), #6366f1);
+      border: 2px solid var(--bg-white);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .msg-bubble {
+      max-width: 72%;
+      min-width: 80px;
+      padding: 12px 16px;
+      border-radius: 18px;
+      line-height: 1.65;
+      font-size: .9rem;
+      position: relative;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .msg-bubble.bot {
+      background: var(--bg-white);
+      color: #1e293b;
+      border: 1.5px solid var(--border);
+      border-bottom-left-radius: 6px;
+      box-shadow: var(--shadow-sm);
+    }
+    .msg-bubble.user {
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+      color: #fff;
+      border-bottom-right-radius: 6px;
+      box-shadow: var(--shadow-sm);
+    }
+    .msg-time {
+      font-size: .7rem; color: var(--gray);
+      margin-top: 4px; padding: 0 4px;
+    }
+    .msg-row.user .msg-time { text-align: right; }
+
+    .msg-label {
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 3px;
+    }
+    .msg-bubble.bot .msg-label { color: var(--teal-dark); }
+    .msg-bubble.user .msg-label { color: rgba(255,255,255,.7); }
+
+    .typing-row { display: flex; align-items: flex-end; gap: 10px; }
+    .typing-bubble {
+      background: var(--bg-white);
+      border: 1.5px solid var(--border);
+      border-radius: 18px; border-bottom-left-radius: 6px;
+      padding: 14px 18px;
+      display: flex; gap: 5px; align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--teal);
+      animation: tdot .9s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2){ animation-delay:.18s }
+    .typing-dot:nth-child(3){ animation-delay:.36s }
+    @keyframes tdot{ 0%,80%,100%{transform:scale(.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+    .source-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--teal-pale); color: var(--teal-dark);
+      border: 1px solid var(--teal-light);
+      border-radius: 6px; padding: 2px 8px;
+      font-size: .72rem; font-weight: 600;
+      margin-top: 8px; margin-right: 4px;
+    }
+
+    .input-area {
+      padding: 16px 20px 20px;
+      background: var(--bg-white);
+      border-top: 2px solid var(--border);
+    }
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    .input-box {
+      flex: 1;
+      background: var(--gray-light);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-family: 'Sarabun', sans-serif;
+      font-size: .92rem;
+      color: #1e293b;
+      resize: none; outline: none;
+      line-height: 1.5;
+      transition: border-color .2s, box-shadow .2s;
+      min-height: 48px; max-height: 120px;
+    }
+    .input-box::placeholder { color: #94a3b8; }
+    .input-box:focus {
+      border-color: var(--teal-mid);
+      box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+      background: #fff;
+    }
+    .send-btn {
+      width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal-mid));
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .send-btn:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: var(--shadow-md);
+    }
+    .send-btn:active:not(:disabled) { transform: scale(.95); }
+    .send-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .input-hint {
+      font-size: .72rem; color: var(--gray);
+      margin-top: 8px; display: flex; justify-content: space-between;
+      align-items: center;
+    }
+    .char-count { font-weight: 600; color: var(--teal-dark); }
+
+    .clear-btn {
+      background: none; border: 1.5px solid #fca5a5;
+      border-radius: 10px; padding: 5px 10px;
+      font-size: .75rem; color: #ef4444;
+      cursor: pointer; font-family: 'Sarabun', sans-serif;
+      transition: all .2s; font-weight: 600;
+    }
+    .clear-btn:hover { background: #fef2f2; }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--teal-dark); color: #fff;
+      border-radius: 12px; padding: 10px 22px;
+      font-size: .85rem; font-weight: 600;
+      box-shadow: var(--shadow-md);
+      animation: toast-in .3s ease, toast-out .3s ease 2.2s forwards;
+      z-index: 100;
+    }
+    @keyframes toast-in  { from{opacity:0;transform:translate(-50%,12px)} to{opacity:1;transform:translate(-50%,0)} }
+    @keyframes toast-out { from{opacity:1} to{opacity:0} }
+
+    * { scrollbar-width: thin; scrollbar-color: var(--teal-mid) transparent; }
+
+    @media(max-width:600px){
+      .nav-title{ font-size:1.2rem; }
+      .chat-history{ max-height:44vh; }
+      .msg-bubble{ max-width:85%; }
+      .fish-tags{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- NAVBAR -->
+    <nav>
+      <div class="nav-brand">
+        <div class="nav-logo"><img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;"></div>
+        <div>
+          <div class="nav-title">AQUA<span>BOT</span></div>
+          <div class="nav-sub">ระบบผู้ช่วยเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- FISH TAGS -->
+    <div class="fish-tags" style="pointer-events: none;">
+      <div class="fish-tag"><span><img src="PNG/tilapia.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลานิล</div>
+      <div class="fish-tag"><span><img src="PNG/catfish.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลาดุก</div>
+      <div class="fish-tag"><span><img src="PNG/silver-barb.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลาตะเพียน</div>
+      <div class="fish-tag"><span><img src="PNG/asian-redtail-catfish.png" alt="" width="14" height="14" style="vertical-align: middle;"></span> ปลากดแก้ว</div>
+    </div>
+
+    <!-- MAIN CHAT CARD -->
+    <div class="chat-card">
+
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="mascot-wrap"><img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;"></div>
+        <div class="card-header-text">
+          <h2>พี่ปลา — AquaBot</h2>
+          <p>ถามเรื่องการเลี้ยงปลา วินิจฉัยโรค และการจัดการฟาร์มได้เลย!</p>
+        </div>
+      </div>
+
+      <!-- Chat History -->
+      <div class="chat-history" id="chatHistory">
+        <div class="welcome-state" id="welcomeState">
+          <div class="big-emoji"><img src="PNG/mascot.png" alt="" width="70" height="70" style="vertical-align: middle;"></div>
+          <h3>สวัสดีครับ! ผมพี่ปลา</h3>
+          <p>ผู้ช่วย AquaBot ยินดีตอบคำถามเรื่อง<br/>การเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ 4 ชนิด<br/>ลองพิมพ์คำถามหรือเลือกหัวข้อด้านล่างได้เลยครับ 🌊</p>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-row">
+          <textarea
+            id="msgInput"
+            class="input-box"
+            placeholder="พิมพ์คำถามเกี่ยวกับการเลี้ยงปลาที่นี่..."
+            rows="1"
+            maxlength="500"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this); updateChar()"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="ส่งคำถาม">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">
+          <span>Enter = ส่ง &nbsp;|&nbsp; Shift+Enter = ขึ้นบรรทัดใหม่</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span class="char-count" id="charCount">0 / 500</span>
+            <button class="clear-btn" onclick="clearChat()">🗑️ ล้างประวัติ</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  let messages = [];
+  let isLoading = false;
+  let hfClient = null;
+
+  function now() {
+    return new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function updateChar() {
+    const v = document.getElementById('msgInput').value.length;
+    document.getElementById('charCount').textContent = v + ' / 500';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function scrollToBottom() {
+    const h = document.getElementById('chatHistory');
+    setTimeout(() => h.scrollTop = h.scrollHeight, 50);
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2600);
+  }
+
+  function renderMsg(role, text, timestamp, sources) {
+    const history = document.getElementById('chatHistory');
+    const ws = document.getElementById('welcomeState');
+    if (ws) ws.style.display = 'none';
+
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + (role === 'user' ? 'user' : 'bot');
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar ' + (role === 'user' ? 'user-av' : 'bot-av');
+    avatar.innerHTML = role === 'user' ? '👤' : '<img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;">';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble ' + role;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'คุณ' : 'พี่ปลา';
+    bubble.appendChild(label);
+
+    const textNode = document.createElement('div');
+    textNode.innerHTML = formatText(text);
+    bubble.appendChild(textNode);
+
+    if (sources && sources.length > 0) {
+      const srcWrap = document.createElement('div');
+      srcWrap.style.marginTop = '8px';
+      sources.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'source-tag';
+        tag.innerHTML = '📄 ' + s;
+        srcWrap.appendChild(tag);
+      });
+      bubble.appendChild(srcWrap);
+    }
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'msg-time';
+    timeEl.textContent = timestamp;
+
+    const inner = document.createElement('div');
+    inner.appendChild(bubble);
+    inner.appendChild(timeEl);
+
+    row.appendChild(avatar);
+    row.appendChild(inner);
+
+    history.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/\n\n+/g, '<br/><br/>')
+      .replace(/\n/g, '<br/>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.*?)`/g, '<code style="background:#e0f2fe;padding:1px 5px;border-radius:4px;font-size:.85em">$1</code>');
+  }
+
+  function showTyping() {
+    const history = document.getElementById('chatHistory');
+    const row = document.createElement('div');
+    row.className = 'typing-row'; row.id = 'typingRow';
+
+    const av = document.createElement('div');
+    av.className = 'msg-avatar bot-av'; av.innerHTML = '<img src="PNG/mascot.png" alt="" width="30" height="30" style="vertical-align: middle;">';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    [1,2,3].forEach(i => {
+      const d = document.createElement('div');
+      d.className = 'typing-dot'; bubble.appendChild(d);
+    });
+
+    row.appendChild(av); row.appendChild(bubble);
+    history.appendChild(row);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingRow');
+    if (t) t.remove();
+  }
+
+  async function sendMessage() {
+    if (isLoading) return;
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    const ts = now();
+    messages.push({ role: 'user', content: text });
+    renderMsg('user', text, ts);
+
+    input.value = '';
+    input.style.height = 'auto';
+    updateChar();
+
+    showTyping();
+
+    try {
+      if (!hfClient) {
+        hfClient = await window.GradioClient.connect("AMORNSETS/aquabot-demo-api");
+      }
+
+      const result = await hfClient.predict("/gradio_chat", {
+        message: text
+      });
+
+      const botReply = result.data[0];
+
+      removeTyping();
+      messages.push({ role: 'assistant', content: botReply });
+      renderMsg('bot', botReply, now(), []);
+
+    } catch (err) {
+      console.error("HF API Error:", err);
+      hfClient = null; 
+      removeTyping();
+      renderMsg('bot', '⚠️ ขออภัยครับ ไม่สามารถเชื่อมต่อกับระบบได้ (หากไม่ได้ใช้งานนาน ระบบกำลังปลุกเซิร์ฟเวอร์ ลองส่งใหม่อีกครั้งใน 15 วินาทีครับ)', now());
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('msgInput').focus();
+  }
+
+  function clearChat() {
+    messages = [];
+    const h = document.getElementById('chatHistory');
+    h.innerHTML = `
+      <div class="welcome-state" id="welcomeState">
+        <div class="big-emoji"><img src="PNG/mascot.png" alt="" width="70" height="70" style="vertical-align: middle;"></div>
+        <h3>สวัสดีครับ! ผมพี่ปลา</h3>
+        <p>ผู้ช่วย AquaBot ยินดีตอบคำถามเรื่อง<br/>การเพาะเลี้ยงปลาน้ำจืดเศรษฐกิจ 4 ชนิด<br/>ลองพิมพ์คำถามหรือเลือกหัวข้อด้านล่างได้เลยครับ 🌊</p>
+      </div>`;
+    showToast('🗑️ ล้างประวัติแล้วครับ');
+  }
+</script>
+</body>
+</html>
